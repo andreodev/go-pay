@@ -9,6 +9,8 @@ import (
 	"github.com/andreodev/go-pay/internal/config"
 	"github.com/andreodev/go-pay/internal/database"
 	"github.com/andreodev/go-pay/internal/http/middleware"
+	"github.com/andreodev/go-pay/internal/risk"
+	"github.com/andreodev/go-pay/internal/webhook"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -40,13 +42,23 @@ func main() {
 		log.Fatal(err)
 	}
 
+	webhookRepository := webhook.NewRepository(db)
+
+	riskService := risk.NewService()
+	riskRepository := risk.NewRepository(db)
+
+	webhookService := webhook.NewService(
+		webhookRepository,
+		riskService,
+		riskRepository,
+	)
+
+	webhookHandler := webhook.NewHandler(webhookService)
+
 	r.Route("/webhooks", func(r chi.Router) {
 		r.Use(middleware.APIKeyAuth(cfg.APIKey))
 
-		r.Post("/payments", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("webhook received"))
-		})
+		r.Post("/payments", webhookHandler.ReceiveWebhooks)
 	})
 
 	addr := fmt.Sprintf(":%s", port)

@@ -16,7 +16,7 @@ type WebhookRequest struct {
 	EventID   uuid.UUID `json:"event_id"`
 	Type      string    `json:"type"`
 	PaymentID uuid.UUID `json:"payment_id"`
-	Amount    float64   `json:"amount"`
+	Amount    int       `json:"amount"`
 	Status    string    `json:"status"`
 	Currency  string    `json:"currency"`
 	Customer  Customer  `json:"customer"`
