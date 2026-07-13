@@ -44,7 +44,7 @@ func main() {
 
 	webhookRepository := webhook.NewRepository(db)
 
-	riskService := risk.NewService()
+	riskService := risk.NewService(risk.NewRepository(db), risk.NewRepository(db))
 	riskRepository := risk.NewRepository(db)
 
 	webhookService := webhook.NewService(
@@ -55,10 +55,18 @@ func main() {
 
 	webhookHandler := webhook.NewHandler(webhookService)
 
+	riskHandler := risk.NewHandler(riskService)
+
 	r.Route("/webhooks", func(r chi.Router) {
 		r.Use(middleware.APIKeyAuth(cfg.APIKey))
 
 		r.Post("/payments", webhookHandler.ReceiveWebhooks)
+	})
+
+	r.Route("/payments", func(r chi.Router) {
+		r.Use(middleware.APIKeyAuth(cfg.APIKey))
+
+		r.Get("/{paymentID}/risk", riskHandler.GetRiskPaymentID)
 	})
 
 	addr := fmt.Sprintf(":%s", port)

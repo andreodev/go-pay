@@ -54,3 +54,34 @@ func (r *Repository) CreateRisk(ctx context.Context, payload *Risk) error {
 
 	return err
 }
+
+func (r *Repository) GetRiskByPaymentID(ctx context.Context, paymentID uuid.UUID) (*Risk, error) {
+	query := `
+		SELECT payment_id, event_id, score, level, reasons
+		FROM payment_risks
+		WHERE payment_id = $1
+	`
+
+	row := r.db.QueryRow(ctx, query, paymentID)
+
+	var risk Risk
+	var reasonsJSON []byte
+
+	err := row.Scan(
+		&risk.PaymentID,
+		&risk.EventID,
+		&risk.Score,
+		&risk.Level,
+		&reasonsJSON,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(reasonsJSON, &risk.Reasons)
+	if err != nil {
+		return nil, err
+	}
+
+	return &risk, nil
+}
