@@ -3,53 +3,45 @@ package risk
 import (
 	"context"
 
+	"github.com/andreodev/go-pay/internal/risk/rules"
 	"github.com/google/uuid"
 )
 
 const (
-	HighAmountThreshold = 100_000
-
-	AmountRuleScore = 20
-
 	LowRiskMax    = 30
 	MediumRiskMax = 70
 )
+
+type Analysis struct {
+	Score   int
+	Reasons []string
+}
 
 type RiskRequest struct {
 	Amount int `json:"amount"`
 }
 
 type Service struct {
-	repository     *Repository
-	riskRepository RiskRepository
+	repository *Repository
 }
 
-type RiskRepository interface {
-	GetRiskByPaymentID(ctx context.Context, paymentID uuid.UUID) (*Risk, error)
-}
-
-func NewService(repository *Repository, riskRepository RiskRepository) *Service {
+func NewService(repository *Repository) *Service {
 	return &Service{
-		repository:     repository,
-		riskRepository: riskRepository,
+		repository: repository,
 	}
 }
 
 func (s *Service) CalculateRisk(input RiskRequest) (*RiskResponse, error) {
-	score := 0
-	reasons := []string{}
+	analysis := &rules.Analysis{}
 
-	if input.Amount > HighAmountThreshold {
-		score += AmountRuleScore
-		reasons = append(reasons, "amount_above_1000")
-	}
+	rules.AmountRule(input.Amount, analysis)
 
-	level := calculateLevel(score)
+	level := calculateLevel(analysis.Score)
 
 	return &RiskResponse{
-		Score:   score,
+		Score:   analysis.Score,
 		Level:   level,
-		Reasons: reasons,
+		Reasons: analysis.Reasons,
 	}, nil
 }
 
@@ -66,7 +58,7 @@ func calculateLevel(score int) string {
 }
 
 func (s *Service) GetRiskPaymentID(paymentID uuid.UUID) (string, error) {
-	risk, err := s.riskRepository.GetRiskByPaymentID(context.Background(), paymentID)
+	risk, err := s.repository.GetRiskByPaymentID(context.Background(), paymentID)
 	if err != nil {
 		return "", err
 	}

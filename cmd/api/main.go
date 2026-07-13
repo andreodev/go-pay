@@ -44,7 +44,7 @@ func main() {
 
 	webhookRepository := webhook.NewRepository(db)
 
-	riskService := risk.NewService(risk.NewRepository(db), risk.NewRepository(db))
+	riskService := risk.NewService(risk.NewRepository(db))
 	riskRepository := risk.NewRepository(db)
 
 	webhookService := webhook.NewService(
