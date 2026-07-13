@@ -18,7 +18,10 @@ type Analysis struct {
 }
 
 type RiskRequest struct {
-	Amount int `json:"amount"`
+	Amount   int       `json:"amount"`
+	IP       string    `json:"ip"`
+	Email    string    `json:"email"`
+	DeviceID uuid.UUID `json:"device_id"`
 }
 
 type Service struct {
@@ -31,10 +34,32 @@ func NewService(repository *Repository) *Service {
 	}
 }
 
-func (s *Service) CalculateRisk(input RiskRequest) (*RiskResponse, error) {
+func (s *Service) CalculateRisk(input RiskRequest, ctx context.Context) (*RiskResponse, error) {
 	analysis := &rules.Analysis{}
 
 	rules.AmountRule(input.Amount, analysis)
+
+	count, err := s.repository.CountEventByIP(ctx, input.IP)
+	if err != nil {
+		return nil, err
+	}
+
+	rules.IPRule(count, analysis)
+
+	emailCount, err := s.repository.CountDeclinedByEmail(ctx, input.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	rules.EmailRule(emailCount, analysis)
+
+	deviceIDCount, err := s.repository.CountEventDeviceID(ctx, input.DeviceID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rules.DeviceIDRule(deviceIDCount, analysis)
 
 	level := calculateLevel(analysis.Score)
 

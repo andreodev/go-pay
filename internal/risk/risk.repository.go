@@ -85,3 +85,53 @@ func (r *Repository) GetRiskByPaymentID(ctx context.Context, paymentID uuid.UUID
 
 	return &risk, nil
 }
+
+func (r *Repository) CountEventByIP(ctx context.Context, ip string) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM payment_events
+		WHERE payload->>'ip' = $1
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, ip).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (r *Repository) CountDeclinedByEmail(ctx context.Context, email string) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM payment_events
+		WHERE payload->'customer'->>'email' = $1
+		  AND payload->>'status' = 'declined'
+	`
+
+	var count int
+
+	err := r.db.QueryRow(ctx, query, email).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (r *Repository) CountEventDeviceID(ctx context.Context, deviceID uuid.UUID) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM payment_events
+		WHERE payload->>'device_id' = $1
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, deviceID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}

@@ -13,7 +13,7 @@ type Service struct {
 }
 
 type RiskService interface {
-	CalculateRisk(input risk.RiskRequest) (*risk.RiskResponse, error)
+	CalculateRisk(input risk.RiskRequest, ctx context.Context) (*risk.RiskResponse, error)
 }
 
 type RiskRepository interface {
@@ -47,8 +47,11 @@ func (s *Service) CreateWebhook(ctx context.Context, input WebhookRequest) (*Web
 	}
 
 	riskResponse, err := s.riskService.CalculateRisk(risk.RiskRequest{
-		Amount: input.Amount,
-	})
+		Amount:   input.Amount,
+		IP:       input.IP,
+		Email:    input.Customer.Email,
+		DeviceID: input.DeviceID,
+	}, ctx)
 	if err != nil {
 		return nil, err
 	}
