@@ -82,11 +82,16 @@ func calculateLevel(score int) string {
 	return "HIGH"
 }
 
-func (s *Service) GetRiskPaymentID(paymentID uuid.UUID) (string, error) {
+func (s *Service) GetRiskPaymentID(paymentID uuid.UUID) (*RiskResponse, error) {
 	risk, err := s.repository.GetRiskByPaymentID(context.Background(), paymentID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return risk.Level, nil
+	return &RiskResponse{
+		PaymentId: risk.PaymentID,
+		Score:     risk.Score,
+		Level:     risk.Level,
+		Reasons:   risk.Reasons,
+	}, nil
 }

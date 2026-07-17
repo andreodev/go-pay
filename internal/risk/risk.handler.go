@@ -1,6 +1,7 @@
 package risk
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,6 +10,22 @@ import (
 
 type Handler struct {
 	service *Service
+}
+
+func formatReasons(reasons []string) string {
+	if len(reasons) == 0 {
+		return "[]"
+	}
+
+	result := "["
+	for i, reason := range reasons {
+		result += `"` + reason + `"`
+		if i < len(reasons)-1 {
+			result += ","
+		}
+	}
+	result += "]"
+	return result
 }
 
 func NewHandler(service *Service) *Handler {
@@ -35,5 +52,12 @@ func (h *Handler) GetRiskPaymentID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(risk))
+	w.Write([]byte(`{"payment_id":"` +
+		risk.PaymentId.String() +
+		`","score":` +
+		fmt.Sprintf("%d", risk.Score) +
+		`,"level":"` +
+		risk.Level +
+		`","reasons":` +
+		formatReasons(risk.Reasons) + `}`))
 }
