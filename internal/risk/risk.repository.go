@@ -120,6 +120,24 @@ func (r *Repository) CountDeclinedByEmail(ctx context.Context, email string) (in
 	return count, nil
 }
 
+func (r *Repository) CountOtherDocumentsByCard(ctx context.Context, bin string, last4 string, document string) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT payload->'customer'->>'document')
+		FROM payment_events
+		WHERE payload->'card'->>'bin' = $1
+		  AND payload->'card'->>'last4' = $2
+		  AND payload->'customer'->>'document' <> $3
+	`
+
+	var count int
+	err := r.db.QueryRow(ctx, query, bin, last4, document).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (r *Repository) CountEventDeviceID(ctx context.Context, deviceID uuid.UUID) (int, error) {
 	query := `
 		SELECT COUNT(*)

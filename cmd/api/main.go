@@ -9,6 +9,7 @@ import (
 	"github.com/andreodev/go-pay/internal/config"
 	"github.com/andreodev/go-pay/internal/database"
 	"github.com/andreodev/go-pay/internal/http/middleware"
+	"github.com/andreodev/go-pay/internal/payments"
 	"github.com/andreodev/go-pay/internal/risk"
 	"github.com/andreodev/go-pay/internal/webhook"
 
@@ -47,6 +48,10 @@ func main() {
 	riskService := risk.NewService(risk.NewRepository(db))
 	riskRepository := risk.NewRepository(db)
 
+	paymentRepository := payments.NewRepository(db)
+	paymentService := payments.NewService(paymentRepository)
+	paymentHandler := payments.NewHandler(paymentService)
+
 	webhookService := webhook.NewService(
 		webhookRepository,
 		riskService,
@@ -67,6 +72,7 @@ func main() {
 		r.Use(middleware.APIKeyAuth(cfg.APIKey))
 
 		r.Get("/{paymentID}/risk", riskHandler.GetRiskPaymentID)
+		r.Get("/events", paymentHandler.ListPaymentEvents)
 	})
 
 	addr := fmt.Sprintf(":%s", port)

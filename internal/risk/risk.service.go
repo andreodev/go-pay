@@ -18,17 +18,28 @@ type Analysis struct {
 }
 
 type RiskRequest struct {
-	Amount   int       `json:"amount"`
-	IP       string    `json:"ip"`
-	Email    string    `json:"email"`
-	DeviceID uuid.UUID `json:"device_id"`
+	Amount    int       `json:"amount"`
+	IP        string    `json:"ip"`
+	Email     string    `json:"email"`
+	Document  string    `json:"document"`
+	CardBin   string    `json:"card_bin"`
+	CardLast4 string    `json:"card_last4"`
+	DeviceID  uuid.UUID `json:"device_id"`
 }
 
 type Service struct {
-	repository *Repository
+	repository RepositoryReader
 }
 
-func NewService(repository *Repository) *Service {
+type RepositoryReader interface {
+	CountEventByIP(ctx context.Context, ip string) (int, error)
+	CountDeclinedByEmail(ctx context.Context, email string) (int, error)
+	CountOtherDocumentsByCard(ctx context.Context, bin string, last4 string, document string) (int, error)
+	CountEventDeviceID(ctx context.Context, deviceID uuid.UUID) (int, error)
+	GetRiskByPaymentID(ctx context.Context, paymentID uuid.UUID) (*Risk, error)
+}
+
+func NewService(repository RepositoryReader) *Service {
 	return &Service{
 		repository: repository,
 	}
@@ -52,6 +63,13 @@ func (s *Service) CalculateRisk(input RiskRequest, ctx context.Context) (*RiskRe
 	}
 
 	rules.EmailRule(emailCount, analysis)
+
+	cardDocumentCount, err := s.repository.CountOtherDocumentsByCard(ctx, input.CardBin, input.CardLast4, input.Document)
+	if err != nil {
+		return nil, err
+	}
+
+	rules.CardDocumentsRule(cardDocumentCount, analysis)
 
 	deviceIDCount, err := s.repository.CountEventDeviceID(ctx, input.DeviceID)
 

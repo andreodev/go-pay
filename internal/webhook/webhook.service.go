@@ -4,12 +4,18 @@ import (
 	"context"
 
 	"github.com/andreodev/go-pay/internal/risk"
+	"github.com/google/uuid"
 )
 
 type Service struct {
-	repository     *Repository
+	repository     EventRepository
 	riskService    RiskService
 	riskRepository RiskRepository
+}
+
+type EventRepository interface {
+	ExistsByEventID(ctx context.Context, eventID uuid.UUID) (bool, error)
+	CreateEvent(ctx context.Context, input *WebhookRequest) error
 }
 
 type RiskService interface {
@@ -20,7 +26,7 @@ type RiskRepository interface {
 	CreateRisk(ctx context.Context, r *risk.Risk) error
 }
 
-func NewService(repository *Repository, riskService RiskService, riskRepository RiskRepository) *Service {
+func NewService(repository EventRepository, riskService RiskService, riskRepository RiskRepository) *Service {
 	return &Service{
 		repository:     repository,
 		riskService:    riskService,
@@ -47,10 +53,13 @@ func (s *Service) CreateWebhook(ctx context.Context, input WebhookRequest) (*Web
 	}
 
 	riskResponse, err := s.riskService.CalculateRisk(risk.RiskRequest{
-		Amount:   input.Amount,
-		IP:       input.IP,
-		Email:    input.Customer.Email,
-		DeviceID: input.DeviceID,
+		Amount:    input.Amount,
+		IP:        input.IP,
+		Email:     input.Customer.Email,
+		Document:  input.Customer.Document,
+		CardBin:   input.Card.Bin,
+		CardLast4: input.Card.Last4,
+		DeviceID:  input.DeviceID,
 	}, ctx)
 	if err != nil {
 		return nil, err
